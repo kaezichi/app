@@ -18,26 +18,47 @@ const Logo = () => (
 
 const App = () => {
   const [currentSection, setCurrentSection] = useState('home');
+  const [previousSection, setPreviousSection] = useState('home');
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
+  const [showQuantityModal, setShowQuantityModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [quantity, setQuantity] = useState(1);
+  const [orderStep, setOrderStep] = useState('cart'); // cart, details, payment, tracking
+  const [orderData, setOrderData] = useState(null);
+  const [showChat, setShowChat] = useState(false);
+  const [showRating, setShowRating] = useState(false);
   const [orderForm, setOrderForm] = useState({
     name: '',
     phone: '',
     address: '',
+    paymentMethod: '',
     notes: ''
   });
 
-  // Menu Data
+  // Expanded Menu Data with extraordinary flavors
   const menuData = {
     milktea: {
       cheesecake: [
+        // Original flavors
         { name: 'Cheesecake Matcha', price: 120, description: 'Creamy cheesecake with premium matcha' },
         { name: 'Cheesecake Chocolate', price: 120, description: 'Rich chocolate cheesecake blend' },
         { name: 'Cheesecake Strawberry', price: 120, description: 'Sweet strawberry cheesecake delight' },
         { name: 'Cheesecake Taro', price: 120, description: 'Purple taro with smooth cheesecake' },
-        { name: 'Cheesecake Original', price: 110, description: 'Classic cheesecake flavor' }
+        { name: 'Cheesecake Original', price: 110, description: 'Classic cheesecake flavor' },
+        // Extraordinary flavors
+        { name: 'Ube Cheesecake', price: 135, description: 'Filipino purple yam with rich cheesecake' },
+        { name: 'Salted Caramel Cheesecake', price: 140, description: 'Perfect balance of sweet and salty' },
+        { name: 'Red Velvet Cheesecake', price: 145, description: 'Luxurious red velvet meets cheesecake' },
+        { name: 'Cookies & Cream Cheesecake', price: 135, description: 'Oreo cookies blended with cheesecake' },
+        { name: 'Mango Cheesecake', price: 130, description: 'Tropical mango with creamy cheesecake' },
+        { name: 'Blueberry Cheesecake', price: 135, description: 'Fresh blueberry burst in every sip' },
+        { name: 'Coffee Cheesecake', price: 125, description: 'Rich espresso meets smooth cheesecake' },
+        { name: 'Lemon Cheesecake', price: 130, description: 'Zesty lemon with velvety cheesecake' },
+        { name: 'Nutella Cheesecake', price: 150, description: 'Decadent Nutella hazelnut cheesecake' }
       ],
       regular: [
+        // Original flavors
         { name: 'Classic Matcha', price: 90, description: 'Premium Japanese matcha tea' },
         { name: 'Chocolate Milk Tea', price: 85, description: 'Rich chocolate blend' },
         { name: 'Strawberry Milk Tea', price: 85, description: 'Fresh strawberry flavor' },
@@ -45,7 +66,18 @@ const App = () => {
         { name: 'Taro Milk Tea', price: 90, description: 'Creamy purple taro' },
         { name: 'Thai Milk Tea', price: 85, description: 'Traditional Thai blend' },
         { name: 'Honeydew Milk Tea', price: 85, description: 'Sweet honeydew melon' },
-        { name: 'Caramel Milk Tea', price: 95, description: 'Rich caramel sweetness' }
+        { name: 'Caramel Milk Tea', price: 95, description: 'Rich caramel sweetness' },
+        // Extraordinary flavors
+        { name: 'Brown Sugar Milk Tea', price: 100, description: 'Trendy brown sugar with fresh milk' },
+        { name: 'Hokkaido Milk Tea', price: 105, description: 'Premium Hokkaido milk blend' },
+        { name: 'Earl Grey Milk Tea', price: 95, description: 'Classic Earl Grey with bergamot' },
+        { name: 'Jasmine Milk Tea', price: 90, description: 'Fragrant jasmine tea base' },
+        { name: 'Passion Fruit Milk Tea', price: 100, description: 'Tropical passion fruit explosion' },
+        { name: 'Lychee Milk Tea', price: 95, description: 'Sweet and floral lychee flavor' },
+        { name: 'Coconut Milk Tea', price: 90, description: 'Creamy coconut paradise' },
+        { name: 'Rose Milk Tea', price: 105, description: 'Delicate rose petals infusion' },
+        { name: 'Lavender Milk Tea', price: 100, description: 'Calming lavender aromatics' },
+        { name: 'Vanilla Bean Milk Tea', price: 95, description: 'Rich Madagascar vanilla beans' }
       ]
     },
     combos: [
@@ -54,7 +86,9 @@ const App = () => {
       { name: 'Chicken Chao Fan + Sausage', price: 175, description: 'Chicken fried rice with longganisa' },
       { name: 'Shrimp Chao Fan + Lumpia', price: 190, description: 'Shrimp fried rice with fresh lumpia (2pcs)' },
       { name: 'Special Chao Fan + Tocino', price: 185, description: 'Mixed fried rice with sweet tocino' },
-      { name: 'Vegetable Chao Fan + Egg', price: 150, description: 'Veggie fried rice with fried egg' }
+      { name: 'Vegetable Chao Fan + Egg', price: 150, description: 'Veggie fried rice with fried egg' },
+      { name: 'Spam Chao Fan + Corned Beef', price: 195, description: 'Spam fried rice with corned beef' },
+      { name: 'Sisig Chao Fan + Bangus', price: 200, description: 'Sisig-style fried rice with fried bangus' }
     ],
     wings: [
       { name: 'Buffalo Wings', price: 220, description: 'Classic spicy buffalo sauce (8pcs)' },
@@ -64,7 +98,9 @@ const App = () => {
       { name: 'Salted Egg Wings', price: 260, description: 'Creamy salted egg coating (8pcs)' },
       { name: 'Adobo Wings', price: 240, description: 'Filipino adobo flavor (8pcs)' },
       { name: 'Sriracha Wings', price: 230, description: 'Spicy sriracha kick (8pcs)' },
-      { name: 'Unlimited Wings Special', price: 350, description: 'All-you-can-eat wings (2 hours)' }
+      { name: 'Unlimited Wings Special', price: 350, description: 'All-you-can-eat wings (2 hours)' },
+      { name: 'Parmesan Wings', price: 245, description: 'Savory parmesan cheese coating (8pcs)' },
+      { name: 'Mango Habanero Wings', price: 255, description: 'Sweet mango with spicy habanero (8pcs)' }
     ],
     snacks: [
       { name: 'Crispy Fries', price: 80, description: 'Golden crispy potato fries' },
@@ -74,7 +110,9 @@ const App = () => {
       { name: 'Chicken Nuggets', price: 130, description: 'Crispy chicken nuggets (10pcs)' },
       { name: 'Onion Rings', price: 100, description: 'Crispy beer-battered onion rings' },
       { name: 'Fish Balls', price: 90, description: 'Filipino-style fish balls (10pcs)' },
-      { name: 'Kwek-kwek', price: 95, description: 'Orange-coated quail eggs (12pcs)' }
+      { name: 'Kwek-kwek', price: 95, description: 'Orange-coated quail eggs (12pcs)' },
+      { name: 'Cheese Fries', price: 120, description: 'Crispy fries topped with melted cheese' },
+      { name: 'Buffalo Cauliflower', price: 135, description: 'Crispy cauliflower in buffalo sauce' }
     ]
   };
 
@@ -85,8 +123,36 @@ const App = () => {
     { name: 'Mike R.', rating: 5, comment: 'Perfect spot for hanging out. The chao fan combos are delicious!' }
   ];
 
-  const addToCart = (item, category) => {
-    setCart([...cart, { ...item, category, id: Date.now() }]);
+  // Navigation with back button functionality
+  const navigateTo = (section) => {
+    setPreviousSection(currentSection);
+    setCurrentSection(section);
+  };
+
+  const goBack = () => {
+    setCurrentSection(previousSection);
+  };
+
+  // Enhanced cart functions with quantity
+  const openQuantityModal = (item, category) => {
+    setSelectedItem({ ...item, category });
+    setQuantity(1);
+    setShowQuantityModal(true);
+  };
+
+  const addToCart = () => {
+    if (selectedItem) {
+      for (let i = 0; i < quantity; i++) {
+        setCart(prev => [...prev, { 
+          ...selectedItem, 
+          id: Date.now() + i,
+          quantity: 1 
+        }]);
+      }
+      setShowQuantityModal(false);
+      setSelectedItem(null);
+      setQuantity(1);
+    }
   };
 
   const removeFromCart = (id) => {
@@ -97,39 +163,112 @@ const App = () => {
     return cart.reduce((total, item) => total + item.price, 0);
   };
 
-  const handleOrder = async () => {
+  const getUniqueItems = () => {
+    const itemMap = {};
+    cart.forEach(item => {
+      const key = `${item.name}-${item.category}`;
+      if (itemMap[key]) {
+        itemMap[key].quantity += 1;
+      } else {
+        itemMap[key] = { ...item, quantity: 1 };
+      }
+    });
+    return Object.values(itemMap);
+  };
+
+  // Order management
+  const proceedToDetails = () => {
     if (cart.length === 0) return;
-    
-    const orderData = {
-      items: cart,
-      customer: orderForm,
+    setOrderStep('details');
+  };
+
+  const proceedToPayment = () => {
+    if (!orderForm.name || !orderForm.phone || !orderForm.address) {
+      alert('Please fill in all required fields');
+      return;
+    }
+    setOrderStep('payment');
+  };
+
+  const placeOrder = async (paymentMethod) => {
+    const newOrderData = {
+      id: 'GT' + Date.now(),
+      items: getUniqueItems(),
+      customer: { ...orderForm, paymentMethod },
       total: getTotalPrice(),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      status: 'confirmed',
+      needsChat: paymentMethod === 'online'
     };
 
     try {
       // In a real app, this would send to backend
-      console.log('Order placed:', orderData);
-      alert('Order placed successfully! We will contact you shortly.');
+      setOrderData(newOrderData);
+      setOrderStep('tracking');
       setCart([]);
-      setOrderForm({ name: '', phone: '', address: '', notes: '' });
-      setShowCart(false);
+      setOrderForm({ name: '', phone: '', address: '', paymentMethod: '', notes: '' });
+      
+      // Simulate order status updates
+      setTimeout(() => {
+        setOrderData(prev => ({ ...prev, status: 'preparing' }));
+      }, 3000);
+      
+      setTimeout(() => {
+        setOrderData(prev => ({ ...prev, status: 'out_for_delivery' }));
+      }, 8000);
+      
     } catch (error) {
       console.error('Order failed:', error);
       alert('Order failed. Please try again.');
     }
   };
 
+  const confirmDelivery = () => {
+    setOrderData(prev => ({ ...prev, status: 'delivered' }));
+    setShowRating(true);
+  };
+
+  const submitRating = (rating, comment) => {
+    // In a real app, this would save the rating to backend
+    console.log('Rating submitted:', { rating, comment, orderId: orderData.id });
+    setShowRating(false);
+    setOrderStep('cart');
+    setOrderData(null);
+    alert('Thank you for your feedback!');
+  };
+
+  // Order status display
+  const getStatusDisplay = (status) => {
+    const statuses = {
+      confirmed: { text: 'Order Confirmed', color: 'bg-blue-500', step: 1 },
+      preparing: { text: 'Preparing Your Order', color: 'bg-yellow-500', step: 2 },
+      out_for_delivery: { text: 'Out for Delivery', color: 'bg-orange-500', step: 3 },
+      delivered: { text: 'Delivered', color: 'bg-green-500', step: 4 }
+    };
+    return statuses[status] || statuses.confirmed;
+  };
+
   const Navigation = () => (
     <nav className="bg-white shadow-lg sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center py-4">
-          <Logo />
+          <div className="flex items-center space-x-4">
+            {currentSection !== 'home' && (
+              <button
+                onClick={goBack}
+                className="flex items-center text-gray-600 hover:text-rose-400 transition-colors"
+              >
+                <span className="mr-2">←</span>
+                Back
+              </button>
+            )}
+            <Logo />
+          </div>
           <div className="hidden md:flex space-x-8">
             {['home', 'menu', 'about', 'gallery', 'reviews', 'contact'].map((section) => (
               <button
                 key={section}
-                onClick={() => setCurrentSection(section)}
+                onClick={() => navigateTo(section)}
                 className={`capitalize font-medium transition-colors ${
                   currentSection === section 
                     ? 'text-rose-400 border-b-2 border-rose-400' 
@@ -151,6 +290,137 @@ const App = () => {
     </nav>
   );
 
+  // Quantity Modal Component
+  const QuantityModal = () => {
+    if (!showQuantityModal || !selectedItem) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg p-6 max-w-md w-full">
+          <h3 className="text-xl font-bold mb-4">{selectedItem.name}</h3>
+          <p className="text-gray-600 mb-4">{selectedItem.description}</p>
+          <p className="text-2xl font-bold text-rose-500 mb-6">₱{selectedItem.price}</p>
+          
+          <div className="flex items-center justify-center space-x-4 mb-6">
+            <button
+              onClick={() => setQuantity(Math.max(1, quantity - 1))}
+              className="bg-gray-200 text-gray-700 w-10 h-10 rounded-full hover:bg-gray-300 transition-colors"
+            >
+              -
+            </button>
+            <span className="text-2xl font-bold w-16 text-center">{quantity}</span>
+            <button
+              onClick={() => setQuantity(quantity + 1)}
+              className="bg-gray-200 text-gray-700 w-10 h-10 rounded-full hover:bg-gray-300 transition-colors"
+            >
+              +
+            </button>
+          </div>
+          
+          <div className="flex space-x-4">
+            <button
+              onClick={() => setShowQuantityModal(false)}
+              className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={addToCart}
+              className="flex-1 bg-rose-400 text-white py-3 rounded-lg hover:bg-rose-500 transition-colors"
+            >
+              Add to Cart (₱{selectedItem.price * quantity})
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Rating Modal Component
+  const RatingModal = () => {
+    const [rating, setRating] = useState(0);
+    const [comment, setComment] = useState('');
+
+    if (!showRating) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg p-6 max-w-md w-full">
+          <h3 className="text-xl font-bold mb-4">Rate Your Experience</h3>
+          <p className="text-gray-600 mb-4">How was your order from Gem's Teahouse?</p>
+          
+          <div className="flex justify-center space-x-2 mb-4">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                onClick={() => setRating(star)}
+                className={`text-3xl ${star <= rating ? 'text-yellow-400' : 'text-gray-300'} hover:text-yellow-400 transition-colors`}
+              >
+                ⭐
+              </button>
+            ))}
+          </div>
+          
+          <textarea
+            placeholder="Share your experience (optional)"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            className="w-full p-3 border rounded-lg mb-4"
+            rows="3"
+          />
+          
+          <div className="flex space-x-4">
+            <button
+              onClick={() => setShowRating(false)}
+              className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              Skip
+            </button>
+            <button
+              onClick={() => submitRating(rating, comment)}
+              disabled={rating === 0}
+              className="flex-1 bg-rose-400 text-white py-3 rounded-lg hover:bg-rose-500 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+              Submit Rating
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Chat Component (placeholder for now)
+  const ChatModal = () => {
+    if (!showChat) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg p-6 max-w-md w-full h-96">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-bold">Chat with Gem's Teahouse</h3>
+            <button
+              onClick={() => setShowChat(false)}
+              className="text-gray-500 hover:text-gray-700 text-2xl"
+            >
+              ×
+            </button>
+          </div>
+          <div className="border-t border-b flex-1 p-4 h-64 overflow-y-auto mb-4">
+            <p className="text-center text-gray-500">Chat functionality will be available soon!</p>
+          </div>
+          <div className="flex space-x-2">
+            <input
+              type="text"
+              placeholder="Type your message..."
+              className="flex-1 p-2 border rounded-lg"
+            />
+            <button className="bg-rose-400 text-white px-4 py-2 rounded-lg">Send</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const Hero = () => (
     <section className="relative h-screen flex items-center justify-center bg-gradient-to-br from-rose-100 to-pink-200">
       <div 
@@ -168,7 +438,7 @@ const App = () => {
           Where every sip feels like home. Authentic Filipino flavors meets premium milk tea.
         </p>
         <button
-          onClick={() => setCurrentSection('menu')}
+          onClick={() => navigateTo('menu')}
           className="bg-rose-400 text-white px-8 py-4 text-lg rounded-full hover:bg-rose-500 transition-all transform hover:scale-105 shadow-lg"
         >
           Explore Our Menu
@@ -203,7 +473,7 @@ const App = () => {
                   <div className="flex justify-between items-center">
                     <span className="text-2xl font-bold text-rose-500">₱{item.price}</span>
                     <button
-                      onClick={() => addToCart(item, 'milktea')}
+                      onClick={() => openQuantityModal(item, 'milktea')}
                       className="bg-rose-400 text-white px-4 py-2 rounded hover:bg-rose-500 transition-colors"
                     >
                       Add to Cart
@@ -224,7 +494,7 @@ const App = () => {
                   <div className="flex justify-between items-center">
                     <span className="text-xl font-bold text-rose-500">₱{item.price}</span>
                     <button
-                      onClick={() => addToCart(item, 'milktea')}
+                      onClick={() => openQuantityModal(item, 'milktea')}
                       className="bg-rose-400 text-white px-3 py-1 text-sm rounded hover:bg-rose-500 transition-colors"
                     >
                       Add
@@ -254,7 +524,7 @@ const App = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-2xl font-bold text-rose-500">₱{item.price}</span>
                   <button
-                    onClick={() => addToCart(item, 'combo')}
+                    onClick={() => openQuantityModal(item, 'combo')}
                     className="bg-rose-400 text-white px-4 py-2 rounded hover:bg-rose-500 transition-colors"
                   >
                     Add to Cart
@@ -283,7 +553,7 @@ const App = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-xl font-bold text-rose-500">₱{item.price}</span>
                   <button
-                    onClick={() => addToCart(item, 'wings')}
+                    onClick={() => openQuantityModal(item, 'wings')}
                     className="bg-rose-400 text-white px-3 py-1 text-sm rounded hover:bg-rose-500 transition-colors"
                   >
                     Add
@@ -312,7 +582,7 @@ const App = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-xl font-bold text-rose-500">₱{item.price}</span>
                   <button
-                    onClick={() => addToCart(item, 'snacks')}
+                    onClick={() => openQuantityModal(item, 'snacks')}
                     className="bg-rose-400 text-white px-3 py-1 text-sm rounded hover:bg-rose-500 transition-colors"
                   >
                     Add
@@ -442,95 +712,233 @@ const App = () => {
     </section>
   );
 
+  // Enhanced Cart Component with multi-step order process
   const Cart = () => {
     if (!showCart) return null;
+
+    const CartStep = () => (
+      <div>
+        <h3 className="text-2xl font-bold text-gray-800 mb-6">Your Order</h3>
+        {cart.length === 0 ? (
+          <p className="text-gray-600 text-center py-8">Your cart is empty</p>
+        ) : (
+          <>
+            <div className="space-y-4 mb-6">
+              {getUniqueItems().map((item) => (
+                <div key={`${item.name}-${item.category}`} className="flex justify-between items-center p-4 bg-gray-50 rounded">
+                  <div>
+                    <h4 className="font-semibold">{item.name}</h4>
+                    <p className="text-gray-600 text-sm">{item.description}</p>
+                    <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <span className="font-bold text-rose-500">₱{item.price * item.quantity}</span>
+                    <button
+                      onClick={() => removeFromCart(item.id)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="border-t pt-4 mb-6">
+              <div className="flex justify-between items-center text-xl font-bold">
+                <span>Total: ₱{getTotalPrice()}</span>
+              </div>
+            </div>
+            <button
+              onClick={proceedToDetails}
+              className="w-full bg-rose-400 text-white py-3 rounded-lg font-semibold hover:bg-rose-500 transition-colors"
+            >
+              Proceed to Checkout
+            </button>
+          </>
+        )}
+      </div>
+    );
+
+    const DetailsStep = () => (
+      <div>
+        <h3 className="text-2xl font-bold text-gray-800 mb-6">Delivery Information</h3>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <input
+              type="text"
+              placeholder="Your Name *"
+              value={orderForm.name}
+              onChange={(e) => setOrderForm({...orderForm, name: e.target.value})}
+              className="p-3 border rounded-lg"
+              required
+            />
+            <input
+              type="tel"
+              placeholder="Phone Number *"
+              value={orderForm.phone}
+              onChange={(e) => setOrderForm({...orderForm, phone: e.target.value})}
+              className="p-3 border rounded-lg"
+              required
+            />
+          </div>
+          <textarea
+            placeholder="Delivery Address *"
+            value={orderForm.address}
+            onChange={(e) => setOrderForm({...orderForm, address: e.target.value})}
+            className="w-full p-3 border rounded-lg"
+            rows="3"
+            required
+          />
+          <textarea
+            placeholder="Special Instructions (Optional)"
+            value={orderForm.notes}
+            onChange={(e) => setOrderForm({...orderForm, notes: e.target.value})}
+            className="w-full p-3 border rounded-lg"
+            rows="2"
+          />
+          <div className="flex space-x-4">
+            <button
+              onClick={() => setOrderStep('cart')}
+              className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              Back to Cart
+            </button>
+            <button
+              onClick={proceedToPayment}
+              className="flex-1 bg-rose-400 text-white py-3 rounded-lg font-semibold hover:bg-rose-500 transition-colors"
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+
+    const PaymentStep = () => (
+      <div>
+        <h3 className="text-2xl font-bold text-gray-800 mb-6">Payment Method</h3>
+        <div className="space-y-4">
+          <div className="border p-4 rounded-lg">
+            <h4 className="font-semibold mb-2">Order Summary</h4>
+            <p>Total: ₱{getTotalPrice()}</p>
+            <p className="text-sm text-gray-600">Delivery to: {orderForm.address}</p>
+          </div>
+          
+          <div className="space-y-3">
+            <button
+              onClick={() => placeOrder('cod')}
+              className="w-full bg-green-500 text-white py-4 rounded-lg font-semibold hover:bg-green-600 transition-colors"
+            >
+              💵 Cash on Delivery
+            </button>
+            <button
+              onClick={() => placeOrder('online')}
+              className="w-full bg-blue-500 text-white py-4 rounded-lg font-semibold hover:bg-blue-600 transition-colors"
+            >
+              💳 Online Payment (GCash/PayPal)
+            </button>
+          </div>
+          
+          <button
+            onClick={() => setOrderStep('details')}
+            className="w-full bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition-colors"
+          >
+            Back to Details
+          </button>
+        </div>
+      </div>
+    );
+
+    const TrackingStep = () => {
+      if (!orderData) return null;
+      
+      const status = getStatusDisplay(orderData.status);
+      
+      return (
+        <div>
+          <h3 className="text-2xl font-bold text-gray-800 mb-6">Order Tracking</h3>
+          
+          <div className="bg-gray-50 p-4 rounded-lg mb-6">
+            <h4 className="font-semibold mb-2">Order #{orderData.id}</h4>
+            <p className="text-sm text-gray-600">Placed: {new Date(orderData.timestamp).toLocaleString()}</p>
+            <p className="text-sm text-gray-600">Total: ₱{orderData.total}</p>
+          </div>
+
+          <div className="mb-6">
+            <div className={`${status.color} text-white p-4 rounded-lg text-center font-semibold`}>
+              {status.text}
+            </div>
+            
+            <div className="mt-4 flex justify-between text-sm">
+              {['Confirmed', 'Preparing', 'Out for Delivery', 'Delivered'].map((step, index) => (
+                <div key={step} className={`text-center ${index < status.step ? 'text-green-600' : 'text-gray-400'}`}>
+                  <div className={`w-8 h-8 rounded-full mx-auto mb-1 ${index < status.step ? 'bg-green-600' : 'bg-gray-300'}`}></div>
+                  <p>{step}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {orderData.needsChat && orderData.status === 'confirmed' && (
+            <button
+              onClick={() => setShowChat(true)}
+              className="w-full bg-blue-500 text-white py-3 rounded-lg mb-4 hover:bg-blue-600 transition-colors"
+            >
+              💬 Chat for Payment Details
+            </button>
+          )}
+
+          {orderData.status === 'out_for_delivery' && (
+            <button
+              onClick={confirmDelivery}
+              className="w-full bg-green-500 text-white py-3 rounded-lg mb-4 hover:bg-green-600 transition-colors"
+            >
+              ✅ Order Received
+            </button>
+          )}
+
+          <div className="space-y-2">
+            <h5 className="font-semibold">Order Items:</h5>
+            {orderData.items.map((item, index) => (
+              <div key={index} className="flex justify-between text-sm p-2 bg-gray-50 rounded">
+                <span>{item.name} (x{item.quantity})</span>
+                <span>₱{item.price * item.quantity}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    };
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto">
           <div className="p-6">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-bold text-gray-800">Your Order</h3>
+              <div className="flex space-x-4">
+                {orderStep !== 'tracking' && (
+                  <div className="flex space-x-2">
+                    <div className={`w-3 h-3 rounded-full ${orderStep === 'cart' ? 'bg-rose-400' : 'bg-gray-300'}`}></div>
+                    <div className={`w-3 h-3 rounded-full ${orderStep === 'details' ? 'bg-rose-400' : 'bg-gray-300'}`}></div>
+                    <div className={`w-3 h-3 rounded-full ${orderStep === 'payment' ? 'bg-rose-400' : 'bg-gray-300'}`}></div>
+                  </div>
+                )}
+              </div>
               <button
-                onClick={() => setShowCart(false)}
+                onClick={() => {
+                  setShowCart(false);
+                  setOrderStep('cart');
+                }}
                 className="text-gray-500 hover:text-gray-700 text-2xl"
               >
                 ×
               </button>
             </div>
 
-            {cart.length === 0 ? (
-              <p className="text-gray-600 text-center py-8">Your cart is empty</p>
-            ) : (
-              <>
-                <div className="space-y-4 mb-6">
-                  {cart.map((item) => (
-                    <div key={item.id} className="flex justify-between items-center p-4 bg-gray-50 rounded">
-                      <div>
-                        <h4 className="font-semibold">{item.name}</h4>
-                        <p className="text-gray-600 text-sm">{item.description}</p>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <span className="font-bold text-rose-500">₱{item.price}</span>
-                        <button
-                          onClick={() => removeFromCart(item.id)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="border-t pt-4 mb-6">
-                  <div className="flex justify-between items-center text-xl font-bold">
-                    <span>Total: ₱{getTotalPrice()}</span>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-lg">Delivery Information</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <input
-                      type="text"
-                      placeholder="Your Name"
-                      value={orderForm.name}
-                      onChange={(e) => setOrderForm({...orderForm, name: e.target.value})}
-                      className="p-3 border rounded-lg"
-                    />
-                    <input
-                      type="tel"
-                      placeholder="Phone Number"
-                      value={orderForm.phone}
-                      onChange={(e) => setOrderForm({...orderForm, phone: e.target.value})}
-                      className="p-3 border rounded-lg"
-                    />
-                  </div>
-                  <textarea
-                    placeholder="Delivery Address"
-                    value={orderForm.address}
-                    onChange={(e) => setOrderForm({...orderForm, address: e.target.value})}
-                    className="w-full p-3 border rounded-lg"
-                    rows="3"
-                  />
-                  <textarea
-                    placeholder="Special Instructions (Optional)"
-                    value={orderForm.notes}
-                    onChange={(e) => setOrderForm({...orderForm, notes: e.target.value})}
-                    className="w-full p-3 border rounded-lg"
-                    rows="2"
-                  />
-                  <button
-                    onClick={handleOrder}
-                    disabled={!orderForm.name || !orderForm.phone || !orderForm.address}
-                    className="w-full bg-rose-400 text-white py-3 rounded-lg font-semibold hover:bg-rose-500 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
-                  >
-                    Place Order
-                  </button>
-                </div>
-              </>
-            )}
+            {orderStep === 'cart' && <CartStep />}
+            {orderStep === 'details' && <DetailsStep />}
+            {orderStep === 'payment' && <PaymentStep />}
+            {orderStep === 'tracking' && <TrackingStep />}
           </div>
         </div>
       </div>
@@ -554,6 +962,9 @@ const App = () => {
       <Navigation />
       {renderSection()}
       <Cart />
+      <QuantityModal />
+      <ChatModal />
+      <RatingModal />
       
       {/* Footer */}
       <footer className="bg-gray-800 text-white py-8">
