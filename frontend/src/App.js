@@ -17,6 +17,12 @@ const Logo = () => (
 );
 
 const App = () => {
+  // Main App State
+  const [isManagementMode, setIsManagementMode] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  
+  // Customer App State
   const [currentSection, setCurrentSection] = useState('home');
   const [previousSection, setPreviousSection] = useState('home');
   const [cart, setCart] = useState([]);
@@ -24,7 +30,7 @@ const App = () => {
   const [showQuantityModal, setShowQuantityModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [quantity, setQuantity] = useState(1);
-  const [orderStep, setOrderStep] = useState('cart'); // cart, details, payment, tracking
+  const [orderStep, setOrderStep] = useState('cart');
   const [orderData, setOrderData] = useState(null);
   const [showChat, setShowChat] = useState(false);
   const [showRating, setShowRating] = useState(false);
@@ -35,6 +41,100 @@ const App = () => {
     paymentMethod: '',
     notes: ''
   });
+
+  // Management State
+  const [managementSection, setManagementSection] = useState('dashboard');
+  const [allOrders, setAllOrders] = useState([]);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [chatMessages, setChatMessages] = useState({});
+  const [newMessage, setNewMessage] = useState('');
+
+  // Valid management credentials
+  const validCredentials = [
+    { id: 'OWNER 1', password: 'GT2025', role: 'Owner' },
+    { id: 'OWNER 2', password: 'GT2025', role: 'Owner' },
+    { id: 'OWNER 3', password: 'GT2025', role: 'Owner' },
+    { id: 'OWNER 4', password: 'GT2025', role: 'Owner' },
+    { id: 'MANAGER', password: 'GT2025', role: 'Manager' }
+  ];
+
+  // Check URL for management access
+  useEffect(() => {
+    if (window.location.hostname.includes('gemsteahouse.management') || 
+        window.location.search.includes('admin') ||
+        window.location.hash.includes('management')) {
+      setIsManagementMode(true);
+    }
+  }, []);
+
+  // Sample orders for demo
+  useEffect(() => {
+    if (isManagementMode) {
+      setAllOrders([
+        {
+          id: 'GT1703123456789',
+          customer: { name: 'Maria Santos', phone: '09123456789', address: 'Block 10, Lot 5, Imus Cavite', paymentMethod: 'online' },
+          items: [
+            { name: 'Ube Cheesecake', quantity: 2, price: 135 },
+            { name: 'Yang Chow Chao Fan + Siomai', quantity: 1, price: 180 }
+          ],
+          total: 450,
+          status: 'confirmed',
+          timestamp: new Date(Date.now() - 3600000).toISOString(),
+          needsChat: true
+        },
+        {
+          id: 'GT1703123456790',
+          customer: { name: 'Juan Dela Cruz', phone: '09987654321', address: 'Phase 2, Bacoor Cavite', paymentMethod: 'cod' },
+          items: [
+            { name: 'Buffalo Wings', quantity: 1, price: 220 },
+            { name: 'Brown Sugar Milk Tea', quantity: 2, price: 100 }
+          ],
+          total: 420,
+          status: 'preparing',
+          timestamp: new Date(Date.now() - 1800000).toISOString(),
+          needsChat: false
+        },
+        {
+          id: 'GT1703123456791',
+          customer: { name: 'Sarah Kim', phone: '09555666777', address: 'GMA Cavite', paymentMethod: 'cod' },
+          items: [
+            { name: 'Red Velvet Cheesecake', quantity: 1, price: 145 },
+            { name: 'Crispy Fries', quantity: 1, price: 80 }
+          ],
+          total: 225,
+          status: 'out_for_delivery',
+          timestamp: new Date(Date.now() - 900000).toISOString(),
+          needsChat: false
+        }
+      ]);
+
+      // Initialize chat messages
+      setChatMessages({
+        'GT1703123456789': [
+          { sender: 'customer', message: 'Hi! I chose online payment. How do I pay?', timestamp: new Date(Date.now() - 3000000).toISOString() },
+          { sender: 'admin', message: 'Hello! You can pay via GCash at 09123456789 or PayPal at gems.teahouse@gmail.com. Please send us the screenshot when done.', timestamp: new Date(Date.now() - 2700000).toISOString() }
+        ]
+      });
+    }
+  }, [isManagementMode]);
+
+  // Authentication
+  const handleLogin = (employeeId, password) => {
+    const user = validCredentials.find(cred => cred.id === employeeId && cred.password === password);
+    if (user) {
+      setIsAuthenticated(true);
+      setCurrentUser(user);
+      return true;
+    }
+    return false;
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+    setManagementSection('dashboard');
+  };
 
   // Expanded Menu Data with extraordinary flavors
   const menuData = {
@@ -123,7 +223,7 @@ const App = () => {
     { name: 'Mike R.', rating: 5, comment: 'Perfect spot for hanging out. The chao fan combos are delicious!' }
   ];
 
-  // Navigation with back button functionality
+  // Customer App Functions
   const navigateTo = (section) => {
     setPreviousSection(currentSection);
     setCurrentSection(section);
@@ -133,7 +233,6 @@ const App = () => {
     setCurrentSection(previousSection);
   };
 
-  // Enhanced cart functions with quantity
   const openQuantityModal = (item, category) => {
     setSelectedItem({ ...item, category });
     setQuantity(1);
@@ -176,7 +275,6 @@ const App = () => {
     return Object.values(itemMap);
   };
 
-  // Order management
   const proceedToDetails = () => {
     if (cart.length === 0) return;
     setOrderStep('details');
@@ -202,7 +300,9 @@ const App = () => {
     };
 
     try {
-      // In a real app, this would send to backend
+      // Add to management orders
+      setAllOrders(prev => [newOrderData, ...prev]);
+      
       setOrderData(newOrderData);
       setOrderStep('tracking');
       setCart([]);
@@ -211,10 +311,16 @@ const App = () => {
       // Simulate order status updates
       setTimeout(() => {
         setOrderData(prev => ({ ...prev, status: 'preparing' }));
+        setAllOrders(prev => prev.map(order => 
+          order.id === newOrderData.id ? { ...order, status: 'preparing' } : order
+        ));
       }, 3000);
       
       setTimeout(() => {
         setOrderData(prev => ({ ...prev, status: 'out_for_delivery' }));
+        setAllOrders(prev => prev.map(order => 
+          order.id === newOrderData.id ? { ...order, status: 'out_for_delivery' } : order
+        ));
       }, 8000);
       
     } catch (error) {
@@ -225,11 +331,13 @@ const App = () => {
 
   const confirmDelivery = () => {
     setOrderData(prev => ({ ...prev, status: 'delivered' }));
+    setAllOrders(prev => prev.map(order => 
+      order.id === orderData.id ? { ...order, status: 'delivered' } : order
+    ));
     setShowRating(true);
   };
 
   const submitRating = (rating, comment) => {
-    // In a real app, this would save the rating to backend
     console.log('Rating submitted:', { rating, comment, orderId: orderData.id });
     setShowRating(false);
     setOrderStep('cart');
@@ -237,7 +345,6 @@ const App = () => {
     alert('Thank you for your feedback!');
   };
 
-  // Order status display
   const getStatusDisplay = (status) => {
     const statuses = {
       confirmed: { text: 'Order Confirmed', color: 'bg-blue-500', step: 1 },
@@ -248,6 +355,481 @@ const App = () => {
     return statuses[status] || statuses.confirmed;
   };
 
+  // Management Functions
+  const updateOrderStatus = (orderId, newStatus) => {
+    setAllOrders(prev => prev.map(order => 
+      order.id === orderId ? { ...order, status: newStatus } : order
+    ));
+    
+    // Update customer's order data if they're tracking the same order
+    if (orderData && orderData.id === orderId) {
+      setOrderData(prev => ({ ...prev, status: newStatus }));
+    }
+  };
+
+  const sendMessage = (orderId, message) => {
+    if (!message.trim()) return;
+    
+    const newMessage = {
+      sender: 'admin',
+      message: message,
+      timestamp: new Date().toISOString()
+    };
+    
+    setChatMessages(prev => ({
+      ...prev,
+      [orderId]: [...(prev[orderId] || []), newMessage]
+    }));
+    
+    setNewMessage('');
+  };
+
+  const shareLocation = (orderId) => {
+    const locationMessage = "📍 Your delivery is nearby! Our rider is at the corner of Gumamela St. and will arrive in 2-3 minutes.";
+    sendMessage(orderId, locationMessage);
+  };
+
+  // MANAGEMENT COMPONENTS
+  const ManagementLogin = () => {
+    const [employeeId, setEmployeeId] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      if (handleLogin(employeeId, password)) {
+        setError('');
+      } else {
+        setError('Invalid credentials. Please check your Employee ID and password.');
+      }
+    };
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-rose-100 to-pink-200 flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+          <div className="text-center mb-8">
+            <Logo />
+            <h2 className="text-2xl font-bold text-gray-800 mt-4">Management Portal</h2>
+            <p className="text-gray-600">gemsteahouse.management</p>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Employee ID</label>
+              <select
+                value={employeeId}
+                onChange={(e) => setEmployeeId(e.target.value)}
+                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-400"
+                required
+              >
+                <option value="">Select Employee ID</option>
+                <option value="OWNER 1">OWNER 1</option>
+                <option value="OWNER 2">OWNER 2</option>
+                <option value="OWNER 3">OWNER 3</option>
+                <option value="OWNER 4">OWNER 4</option>
+                <option value="MANAGER">MANAGER</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-400"
+                placeholder="Enter password"
+                required
+              />
+            </div>
+            
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                {error}
+              </div>
+            )}
+            
+            <button
+              type="submit"
+              className="w-full bg-rose-400 text-white py-3 rounded-lg font-semibold hover:bg-rose-500 transition-colors"
+            >
+              Login
+            </button>
+          </form>
+          
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => setIsManagementMode(false)}
+              className="text-rose-400 hover:text-rose-500 text-sm"
+            >
+              ← Back to Customer Site
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const ManagementDashboard = () => {
+    const getOrderStats = () => {
+      const stats = {
+        total: allOrders.length,
+        confirmed: allOrders.filter(o => o.status === 'confirmed').length,
+        preparing: allOrders.filter(o => o.status === 'preparing').length,
+        out_for_delivery: allOrders.filter(o => o.status === 'out_for_delivery').length,
+        delivered: allOrders.filter(o => o.status === 'delivered').length,
+        totalRevenue: allOrders.reduce((sum, order) => sum + order.total, 0),
+        needsChat: allOrders.filter(o => o.needsChat && o.status !== 'delivered').length
+      };
+      return stats;
+    };
+
+    const stats = getOrderStats();
+
+    return (
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">Management Dashboard</h1>
+            <p className="text-gray-600">Welcome back, {currentUser.role} {currentUser.id}</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
+          >
+            Logout
+          </button>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-lg font-semibold text-gray-700">Total Orders</h3>
+            <p className="text-3xl font-bold text-blue-600">{stats.total}</p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-lg font-semibold text-gray-700">Pending</h3>
+            <p className="text-3xl font-bold text-yellow-600">{stats.confirmed + stats.preparing}</p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-lg font-semibold text-gray-700">Out for Delivery</h3>
+            <p className="text-3xl font-bold text-orange-600">{stats.out_for_delivery}</p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-lg font-semibold text-gray-700">Revenue</h3>
+            <p className="text-3xl font-bold text-green-600">₱{stats.totalRevenue.toLocaleString()}</p>
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <div className="flex space-x-4 mb-6">
+          {['dashboard', 'orders', 'messages'].map((section) => (
+            <button
+              key={section}
+              onClick={() => setManagementSection(section)}
+              className={`px-6 py-3 rounded-lg font-medium capitalize transition-colors ${
+                managementSection === section 
+                  ? 'bg-rose-400 text-white' 
+                  : 'bg-white text-gray-700 hover:bg-rose-50'
+              }`}
+            >
+              {section}
+              {section === 'messages' && stats.needsChat > 0 && (
+                <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                  {stats.needsChat}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Recent Orders */}
+        <div className="bg-white rounded-lg shadow-md">
+          <div className="p-6 border-b">
+            <h2 className="text-xl font-semibold text-gray-800">Recent Orders</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {allOrders.slice(0, 5).map((order) => (
+                  <tr key={order.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{order.id}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{order.customer.name}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">₱{order.total}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        order.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                        order.status === 'preparing' ? 'bg-yellow-100 text-yellow-800' :
+                        order.status === 'out_for_delivery' ? 'bg-orange-100 text-orange-800' :
+                        'bg-green-100 text-green-800'
+                      }`}>
+                        {order.status.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {new Date(order.timestamp).toLocaleTimeString()}
+                    </td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => {
+                          setSelectedOrder(order);
+                          setManagementSection('orders');
+                        }}
+                        className="text-rose-400 hover:text-rose-600 text-sm"
+                      >
+                        View Details
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const ManagementOrders = () => {
+    return (
+      <div className="p-6">
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">Order Management</h2>
+        
+        <div className="grid gap-6">
+          {allOrders.map((order) => (
+            <div key={order.id} className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800">Order #{order.id}</h3>
+                  <p className="text-gray-600">{new Date(order.timestamp).toLocaleString()}</p>
+                </div>
+                <span className={`px-3 py-1 rounded-full text-sm ${
+                  order.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                  order.status === 'preparing' ? 'bg-yellow-100 text-yellow-800' :
+                  order.status === 'out_for_delivery' ? 'bg-orange-100 text-orange-800' :
+                  'bg-green-100 text-green-800'
+                }`}>
+                  {order.status.replace('_', ' ')}
+                </span>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold mb-2">Customer Information</h4>
+                  <p><strong>Name:</strong> {order.customer.name}</p>
+                  <p><strong>Phone:</strong> {order.customer.phone}</p>
+                  <p><strong>Address:</strong> {order.customer.address}</p>
+                  <p><strong>Payment:</strong> {order.customer.paymentMethod}</p>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">Order Items</h4>
+                  {order.items.map((item, index) => (
+                    <div key={index} className="flex justify-between text-sm mb-1">
+                      <span>{item.name} (x{item.quantity})</span>
+                      <span>₱{item.price * item.quantity}</span>
+                    </div>
+                  ))}
+                  <div className="border-t pt-2 mt-2">
+                    <div className="flex justify-between font-semibold">
+                      <span>Total:</span>
+                      <span>₱{order.total}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3 mt-6">
+                {order.status === 'confirmed' && (
+                  <button
+                    onClick={() => updateOrderStatus(order.id, 'preparing')}
+                    className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 transition-colors"
+                  >
+                    Start Preparing
+                  </button>
+                )}
+                {order.status === 'preparing' && (
+                  <button
+                    onClick={() => updateOrderStatus(order.id, 'out_for_delivery')}
+                    className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 transition-colors"
+                  >
+                    Out for Delivery
+                  </button>
+                )}
+                {order.status === 'out_for_delivery' && (
+                  <>
+                    <button
+                      onClick={() => updateOrderStatus(order.id, 'delivered')}
+                      className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors"
+                    >
+                      Mark as Delivered
+                    </button>
+                    <button
+                      onClick={() => shareLocation(order.id)}
+                      className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+                    >
+                      📍 Share Location
+                    </button>
+                  </>
+                )}
+                {order.needsChat && (
+                  <button
+                    onClick={() => {
+                      setSelectedOrder(order);
+                      setManagementSection('messages');
+                    }}
+                    className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 transition-colors"
+                  >
+                    💬 Chat with Customer
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const ManagementMessages = () => {
+    const ordersNeedingChat = allOrders.filter(order => order.needsChat && order.status !== 'delivered');
+    
+    return (
+      <div className="p-6">
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">Customer Messages</h2>
+        
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Order List */}
+          <div className="bg-white rounded-lg shadow-md">
+            <div className="p-4 border-b">
+              <h3 className="font-semibold text-gray-800">Orders Needing Attention</h3>
+            </div>
+            <div className="space-y-2 p-4">
+              {ordersNeedingChat.map((order) => (
+                <div
+                  key={order.id}
+                  onClick={() => setSelectedOrder(order)}
+                  className={`p-3 rounded cursor-pointer transition-colors ${
+                    selectedOrder?.id === order.id 
+                      ? 'bg-rose-100 border-l-4 border-rose-400' 
+                      : 'hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium text-sm">{order.customer.name}</p>
+                      <p className="text-xs text-gray-500">#{order.id}</p>
+                      <p className="text-xs text-gray-500">₱{order.total} - {order.customer.paymentMethod}</p>
+                    </div>
+                    {chatMessages[order.id] && chatMessages[order.id].length > 0 && (
+                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Chat Area */}
+          <div className="lg:col-span-2 bg-white rounded-lg shadow-md">
+            {selectedOrder ? (
+              <>
+                <div className="p-4 border-b">
+                  <h3 className="font-semibold text-gray-800">
+                    Chat with {selectedOrder.customer.name}
+                  </h3>
+                  <p className="text-sm text-gray-600">Order #{selectedOrder.id}</p>
+                </div>
+                
+                <div className="h-96 overflow-y-auto p-4 space-y-3">
+                  {(chatMessages[selectedOrder.id] || []).map((msg, index) => (
+                    <div
+                      key={index}
+                      className={`flex ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-xs px-4 py-2 rounded-lg ${
+                          msg.sender === 'admin'
+                            ? 'bg-rose-400 text-white'
+                            : 'bg-gray-200 text-gray-800'
+                        }`}
+                      >
+                        <p className="text-sm">{msg.message}</p>
+                        <p className="text-xs opacity-75 mt-1">
+                          {new Date(msg.timestamp).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="p-4 border-t">
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder="Type your message..."
+                      className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-400"
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          sendMessage(selectedOrder.id, newMessage);
+                        }
+                      }}
+                    />
+                    <button
+                      onClick={() => sendMessage(selectedOrder.id, newMessage)}
+                      className="bg-rose-400 text-white px-4 py-2 rounded-lg hover:bg-rose-500 transition-colors"
+                    >
+                      Send
+                    </button>
+                  </div>
+                  
+                  {/* Quick Messages */}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => sendMessage(selectedOrder.id, "Hello! For GCash payment, please send to 09123456789 (John Santos). Send screenshot when done.")}
+                      className="bg-blue-100 text-blue-800 px-3 py-1 rounded text-sm hover:bg-blue-200"
+                    >
+                      GCash Instructions
+                    </button>
+                    <button
+                      onClick={() => sendMessage(selectedOrder.id, "For PayPal payment, send to gems.teahouse@gmail.com. Please include your order number in the notes.")}
+                      className="bg-green-100 text-green-800 px-3 py-1 rounded text-sm hover:bg-green-200"
+                    >
+                      PayPal Instructions
+                    </button>
+                    <button
+                      onClick={() => shareLocation(selectedOrder.id)}
+                      className="bg-purple-100 text-purple-800 px-3 py-1 rounded text-sm hover:bg-purple-200"
+                    >
+                      📍 Share Location
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center justify-center h-96">
+                <p className="text-gray-500">Select an order to start chatting</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // CUSTOMER APP COMPONENTS (keeping existing ones)
   const Navigation = () => (
     <nav className="bg-white shadow-lg sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4">
@@ -279,12 +861,20 @@ const App = () => {
               </button>
             ))}
           </div>
-          <button
-            onClick={() => setShowCart(true)}
-            className="bg-rose-400 text-white px-4 py-2 rounded-lg hover:bg-rose-500 transition-colors relative"
-          >
-            Cart ({cart.length})
-          </button>
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setShowCart(true)}
+              className="bg-rose-400 text-white px-4 py-2 rounded-lg hover:bg-rose-500 transition-colors relative"
+            >
+              Cart ({cart.length})
+            </button>
+            <button
+              onClick={() => setIsManagementMode(true)}
+              className="text-gray-600 hover:text-rose-400 text-sm"
+            >
+              Staff Login
+            </button>
+          </div>
         </div>
       </div>
     </nav>
@@ -389,9 +979,9 @@ const App = () => {
     );
   };
 
-  // Chat Component (placeholder for now)
+  // Chat Component with real functionality
   const ChatModal = () => {
-    if (!showChat) return null;
+    if (!showChat || !orderData) return null;
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -405,8 +995,26 @@ const App = () => {
               ×
             </button>
           </div>
-          <div className="border-t border-b flex-1 p-4 h-64 overflow-y-auto mb-4">
-            <p className="text-center text-gray-500">Chat functionality will be available soon!</p>
+          <div className="border-t border-b flex-1 p-4 h-64 overflow-y-auto mb-4 space-y-3">
+            {(chatMessages[orderData.id] || []).map((msg, index) => (
+              <div
+                key={index}
+                className={`flex ${msg.sender === 'customer' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-xs px-4 py-2 rounded-lg ${
+                    msg.sender === 'customer'
+                      ? 'bg-blue-400 text-white'
+                      : 'bg-gray-200 text-gray-800'
+                  }`}
+                >
+                  <p className="text-sm">{msg.message}</p>
+                  <p className="text-xs opacity-75 mt-1">
+                    {new Date(msg.timestamp).toLocaleTimeString()}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
           <div className="flex space-x-2">
             <input
@@ -421,6 +1029,7 @@ const App = () => {
     );
   };
 
+  // Keep all existing customer components (Hero, MenuSection, About, Gallery, Reviews, Contact, Cart)
   const Hero = () => (
     <section className="relative h-screen flex items-center justify-center bg-gradient-to-br from-rose-100 to-pink-200">
       <div 
@@ -956,6 +1565,21 @@ const App = () => {
       default: return <Hero />;
     }
   };
+
+  // MAIN APP RENDER
+  if (isManagementMode) {
+    if (!isAuthenticated) {
+      return <ManagementLogin />;
+    }
+
+    return (
+      <div className="min-h-screen bg-gray-100">
+        {managementSection === 'dashboard' && <ManagementDashboard />}
+        {managementSection === 'orders' && <ManagementOrders />}
+        {managementSection === 'messages' && <ManagementMessages />}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
